@@ -1,0 +1,183 @@
+\documentclass[10pt, openany]{article}
+
+\usepackage{enumitem} % itemize stuff
+\usepackage{listings} % lstlisting
+\usepackage{hyperref} % url, href
+\usepackage{float}    % For [H] placement
+\usepackage{caption}  % Optional: for custom caption settings
+\usepackage{booktabs} % for the table 
+\usepackage{amsmath}
+
+\author{Alessio Tanzi}
+
+\begin{document}
+  \section{Intro}
+  Useful resource: \url{https://tenthousandmeters.com/tag/python-behind-the-scenes/}\par
+  this document is about learning python. The following is the hello
+  world program:
+  \begin{lstlisting}
+print("Hello World");
+  \end{lstlisting}
+
+  \section{Variables}
+  Each variable is \textbf{connected} to a value.\par
+  Uppercase letters in variable names have special meaning (later)\par
+  Internally, variables are \textbf{references} to values in 
+  memory.\par
+  \subsubsection{Strings}
+  You can use both " and ' to delimit them.\par
+  Concat them with + to write them over multiple lines, and write 
+  \\n to write newline.\par
+  The internal representation of strings in python is actually not 
+  that simple.\par
+  The string has 2 possible states: \textbf{compact} and 
+  \textbf{legacy}, in which compact representation basically is a 
+  list of UTF-8 characters and is used only \textit{maximum character
+  and size are known at creation time} (eg for string literals).\par
+  Otherwise, it will revert to the legacy representation, which, 
+  depending on the content of the string, can be of 3 \textit{kinds}
+  \begin{itemize}[noitemsep, topsep=0pt]
+    \item Latin-1
+    \item UCS-2
+    \item UCS-4
+  \end{itemize}
+  Reported here is the actual struct used in CPython as of PEP393
+  \begin{figure}[H]
+  \captionsetup{labelformat=empty}  % Suppress the caption label
+  \begin{lstlisting}
+typedef struct {
+  PyObject_HEAD
+  Py_ssize_t length;
+  Py_hash_t hash;
+  struct {
+      unsigned int interned:2;
+      unsigned int kind:2;
+      unsigned int compact:1;
+      unsigned int ascii:1;
+      unsigned int ready:1;
+  } state;
+  wchar_t *wstr;
+} PyASCIIObject;
+
+typedef struct {
+  PyASCIIObject _base;
+  Py_ssize_t utf8_length;
+  char *utf8;
+  Py_ssize_t wstr_length;
+} PyCompactUnicodeObject;
+
+typedef struct {
+  PyCompactUnicodeObject _base;
+  union {
+      void *any;
+      Py_UCS1 *latin1;
+      Py_UCS2 *ucs2;
+      Py_UCS4 *ucs4;
+  } data;
+} PyUnicodeObject;
+  \end{lstlisting}
+  \end{figure}
+  link to the documentation: \url{https://peps.python.org/pep-0393/#string-creation}\par
+  
+  We have methods to manipulate the string, like \texttt{strip}, 
+  \texttt{find}, \texttt(index), \texttt{split}, \texttt{join},
+  we can \textbf{use all comparisons operations lexicograhycal},
+  \par
+  We can also query for membership like
+  \begin{lstlisting}
+    'a' in 'apple' == True
+  \end{lstlisting}
+  
+  \section{Numbers}
+  There are 3 types of number in python: \textbf{integers}, 
+  \textbf{floating-point numbers} and \textbf{complex numbers}. The 
+  standard library also gives us \texttt{decimal.Decimal} and 
+  \texttt{fractions.Fraction}.\par
+  To create a complex number, just append the 'j' to a numeric literal
+  \par
+  \begin{lstlisting}
+inum = -32432
+fnum = 3.32423
+cnum = 3.14 - 1j
+  \end{lstlisting}
+\textbf{Integers} in python are \textbf{arbitrary-precision integers}.
+  \begin{lstlisting}
+typedef struct {
+    PyObject ob_base;
+    Py_ssize_t ob_size; /* Number of items in variable part */
+} PyVarObject;
+
+struct _longobject {
+    PyVarObject ob_base; // expansion of PyObject_VAR_HEAD macro
+    digit ob_digit[1];
+};
+  \end{lstlisting}
+  the \texttt{ob\_digit} member is a pointer to an array of digits.
+  More information on this bignum arithmetic implementation 
+  \url{https://tenthousandmeters.com/blog/python-behind-the-scenes-8-how-python-integers-work/}\par
+  This comes with performance implications for each integer 
+  operation and the memory consumption of each integer, which is 
+  proportional to the number itself. For reference \textbf{small 
+  numbers take 28 bytes}. You can verify that by calling the 
+  \texttt{bit\_length} method on an integer
+  \begin{itemize}[noitemsep, topsep=0pt]
+    \item a reference count \texttt{ob\_refcnt}: 8 bytes
+    \item a type \texttt{ob\_type}: 8 bytes
+    \item an object's size \texttt{ob\_size}: 8 bytes
+    \item \texttt{ob\_digit}: 4 bytes.
+  \end{itemize}
+  \textbf{Floating} numbers are instead double precision floatin point
+  numbers, stored in a \texttt{PyObject} type, which is a reference
+  counted object.
+  \begin{lstlisting}
+typedef struct { 
+    PyObject_HEAD
+    double ob_fval; 
+} PyFloatObject
+  \end{lstlisting}
+  \textbf{Complex} numbers are basically a pair of floating point 
+  numbers (double precision)
+  \begin{lstlisting}
+typedef struct {
+    PyObject_HEAD
+    double cval_real;   // Real part
+    double cval_imag;   // Imaginary part
+} PyComplexObject;
+  \end{lstlisting}
+  For each of the number types the the following operations 
+  are defined
+  \begin{table}[ht]
+    \centering
+    \caption{Built-in python numbers operations}
+    \begin{tabular}{@{}lll@{}}
+        \toprule
+        \texttt{Operation}         & \texttt{Description}                                  & \texttt{Notes}           \\ \midrule
+        \texttt{x + y}        & Sum of \(x\) and \(y\)                            &                  \\
+        \texttt{x - y}        & Difference of \(x\) and \(y\)                     &                  \\
+        \texttt{x * y}        & Product of \(x\) and \(y\)                        &                  \\
+        \texttt{x / y}        & Quotient of \(x\) and \(y\)                       &                  \\
+        \texttt{x // y}       & Floored quotient of \(x\) and \(y\)               & (1)(2)          \\
+        \texttt{x \% y}       & Remainder of \(x / y\)                            & (2)              \\
+        \texttt{-x}           & \(x\) negated                                      &                  \\
+        \texttt{+x}           & \(x\) unchanged                                    &                  \\
+        \texttt{abs(x)}       & Absolute value or magnitude of \(x\)               &                  \\
+        \texttt{int(x)}       & \(x\) converted to integer                          & (3)(6)          \\
+        \texttt{float(x)}     & \(x\) converted to floating point                   & (4)(6)          \\
+        \texttt{complex(re, im)} & A complex number with real part \(re\), imaginary part \(im\) (defaults to zero) & (6) \\
+        \texttt{c.conjugate()} & Conjugate of the complex number \(c\)              &                  \\
+        \texttt{divmod(x, y)} & The pair \((x / y, x \% y)\)                     & (2)              \\
+        \texttt{pow(x, y)}    & \(x\) to the power \(y\)                           & (5)              \\
+        \texttt{x ** y}       & \(x\) to the power \(y\)                           & (5)              \\ 
+        \bottomrule
+    \end{tabular}
+    \label{tab:math_operations}
+  \end{table}
+  Furthermore, integers also feature \textbf{bitwise operations}, 
+  which are \texttt{|} (or), \texttt{^} (xor), 
+  \texttt{\&} (and), 
+  \texttt{<<} (left shift), \texttt{>>} (right shift), 
+  \texttt{~} (not) \par
+
+  \section{List}
+
+\end{document}
