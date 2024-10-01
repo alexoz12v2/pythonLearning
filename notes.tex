@@ -173,11 +173,123 @@ typedef struct {
     \label{tab:math_operations}
   \end{table}
   Furthermore, integers also feature \textbf{bitwise operations}, 
-  which are \texttt{|} (or), \texttt{^} (xor), 
+  which are \texttt{|} (or), \texttt{\^} (xor), 
   \texttt{\&} (and), 
   \texttt{<<} (left shift), \texttt{>>} (right shift), 
   \texttt{~} (not) \par
 
-  \section{List}
+  \section{Boolean}
+  The \texttt{bool} type has 2 possible values: \texttt{True} and 
+  \texttt{False}, with a constructor
 
+  \section{Containers Intro}
+  Python supports 3 types of containers: \textbf{sequences} and 
+  \textbf{set types} and \textbf{mapping objects}, each with its
+  interface, which is meant to be implemented if you want to write 
+  your custom container.\par
+  A method which is shared by all of them is the one that returns an
+  interator over the container (part of the \textbf{iterable} 
+  interface)
+  \begin{lstlisting}
+container.__iter__()
+  \end{lstlisting}
+  While an \textbf{iterator} implmenets
+  \begin{lstlisting}
+iterator.__iter__()
+iterator.__next__() # raise StopIteration exception at end
+  \end{lstlisting}
+  Example of a first custom container (with immutable elements, 
+  hence useless, for the sake of using iterators)
+  \begin{lstlisting}
+def ordinalStr(num):
+  match num:
+    case 1:
+      return '1st'
+    case 2:
+      return '2nd'
+    case 3:
+      return '3rd'
+    case _:
+      return str(num) + 'th'
+
+# trying out iterators for myself
+class Thing:
+  # private method starts with __
+
+  # private variable
+  _numbers = [ordinalStr(x) for x in range(1, 10)]
+
+  # constructor
+  def __init__(self, x):
+    # another variable
+    self._firstStr = self._numbers[0]
+    self._arg = x
+
+  # iterable interface
+  def __iter__(self):
+    return self._numbers.__iter__()
+
+  # to print it directly
+  def __repr__(self):
+    className = type(self).__name__
+    return f'{className}()'
+
+  def getArg(self):
+    return self._arg;
+  \end{lstlisting}
+  Starting to see \textbf{sequences}
+
+  \section{Sequence Types}
+  There are 3: \texttt{\textbf{list}}, 
+  \texttt{\textbf{tuple}}, \texttt{\textbf{range}}\par
+
+  All sequences have common operations, eg. membership, indexing, 
+  concatenation, repetition, minmax, count.\par
+  Of course, these operators work if you defined the interface, in
+  particular in min/max, you need to define the \textbf{comparison}
+  operations (\texttt{\_\_lt\_\_}, \texttt{\_\_le\_\_}, 
+  \texttt{\_\_eq\_\_}, \texttt{\_\_ne\_\_}, \texttt{\_\_gt\_\_}, 
+  \texttt{\_\_ge\_\_})
+  \begin{table}[t]
+    \centering
+    \caption{Sequence operations}
+    \begin{tabular}{@{}ll@{}}
+      \toprule
+      \textbf{Operation} & \textbf{Outcome} \\
+      \midrule
+      \texttt{x in s} & \texttt{True} if an item of s is equal to x,
+        else \texttt{False} \\
+      \texttt{x not in x} & \texttt{False} if an item of s is equal
+        to x, else \texttt{True} \\
+      \texttt{s + t} & the concatenation of s and t \\
+      \texttt{s * n} or \texttt{n * s} & equivalent to adding s to
+        itself n times \textbf{shallow copy}\\
+      \texttt{s[i]} & ith element of s \\
+      \texttt{s[i:j]} & slice of s from i to j \\
+      \texttt{s[i:j:k]} & slice of s from i to j with step \\
+      \texttt{len(s)} & length of s \\
+      \texttt{min(s)} & smallest element of s \\
+      \texttt{max(s)} & largest element of s \\
+      \texttt{s.index(x[, i[, j]])} & find first occurrence of x,
+        optionally within a subsequence from i to j \\
+      \texttt{s.count(x)} & number of occurrences of x in s \\
+      \bottomrule
+    \end{tabular}
+  \end{table}
+  If you give a \textbf{negative index} \texttt{i}, then the actual
+  formula used to index the object is \texttt{len(s) + i}\par
+  Note that \texttt{str} objects are immutable (like strings in java)
+  and the equivalent of string builder is 
+  \textbf{\texttt{io.StringIO}} (or use \texttt{str.join()} on an 
+  \textit(iterable))\par
+  \textbf{\texttt{tuple} and \texttt{range} are immutable}, hence
+  \textbf{hashable}, which means that they can be used as key types
+  in an mapping object like \texttt{dict}.\par
+  \textbf{Mutable} sequence types like \texttt{list} support 
+  additional operations, i.e. assignment, deletion, insertion, 
+  extension.
+  \begin{table}[t]
+    \centering
+    \caption{Mutable Sequence Operations}
+  \end{table}
 \end{document}

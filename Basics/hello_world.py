@@ -92,3 +92,88 @@ print('Numerical Operations:\n\t'
   f'x ** y             = {x ** y}\n\t',
   'To take the phase of a complex, import cmath and use cmath.phase'
 )
+
+# calling a method on a lietral requires parenthesis or constructor
+print(f'\n\n\n(-2.0).is_integer() = {(-2.0).is_integer()}')
+
+# trying out iterators
+lst = [1, 2, 3, 4, 4]
+print(f'initial list of len(lst) = {len(lst)}:\n\t{lst}')
+
+lst.append('another type')
+lst.insert(2, 'fsd')
+print(f'after append(.) and insert(2, .): \n\t{lst}')
+
+del lst[4]
+popped = lst.pop() # can pass an index too
+print(f'after del lst[4] and pop(): \n\t{lst}, popped: {popped}')
+
+lst.remove('fsd')
+print(f'after lst.remove(\'fsd\'): \n\t{lst}')
+
+# lst.insert(3, 'fst') sorting between str and int -> TypeError
+lst.sort() # version which returns a non mutable -> sorted(lst)
+print(f'after lst.sort():\n\t{lst}')
+
+lst.reverse()
+print(f'after lst.reverse()\n\t{lst}')
+
+print(f'negative index index: go backwards, lst[-1]: {lst[-1]}')
+
+#trying out iterators
+print('iterating through lst with iterators')
+for num in lst: # remember: indentation and colon
+  print(f'\tcurrent element: {num}')
+
+
+def ordinalStr(num):
+  match num:
+    case 1:
+      return '1st'
+    case 2:
+      return '2nd'
+    case 3:
+      return '3rd'
+    case _:
+      return str(num) + 'th'
+
+# trying out iterators for myself
+class Thing:
+  # private method starts with __
+
+  # private variable
+  _numbers = [ordinalStr(x) for x in range(1, 10)]
+
+  # constructor
+  def __init__(self, x):
+    # another variable
+    self._firstStr = self._numbers[0]
+    self._arg = x
+
+  # iterable interface (__.*__ is a built-in function)
+  def __iter__(self):
+    return self._numbers.__iter__()
+
+  # to print it directly
+  def __repr__(self):
+    className = type(self).__name__
+    return f'{className}()'
+
+  def getArg(self):
+    return self._arg;
+
+thing = Thing(32)
+print(f'custom object thing: {thing}')
+
+for n in thing:
+  print(f'\tcurrent number string: {n}')
+
+print(f'strings are also sequences: "gg" in "eggs":'
+  f' {"gg" in "eggs"}')
+
+# list of lists
+mdLst = [[] for i in range(3)]
+mdLst[0].append(2)
+mdLst[1].append(2.32)
+mdLst[2].append(2 + 7j)
+print(f'multidimensional list: {mdLst}')
