@@ -152,7 +152,7 @@ class Thing:
 
   # iterable interface (__.*__ is a built-in function)
   def __iter__(self):
-    return self._numbers.__iter__()
+    return self._numbers.__iter__() # iter(self._numbers)
 
   # to print it directly
   def __repr__(self):
@@ -177,3 +177,84 @@ mdLst[0].append(2)
 mdLst[1].append(2.32)
 mdLst[2].append(2 + 7j)
 print(f'multidimensional list: {mdLst}')
+
+print('format examples with a dictionary and the\n\t'
+  'Dictionary unpacking operator (**)')
+person = { 'name': 'Jane', 'age': 25 }
+print('Hello, {name}! You\'re {age} years old'.format(**person))
+
+# in formatting, : introduces a specifier, then follows the rest
+print("number with 2 digits: {:.2f}".format(23.23422))
+
+# occupy at max n characters (30), center the given string, and 
+# fill the remaining space with the given character (_)
+print('{:_^30}'.format('center'))
+print(f'{"center":_^30}')
+
+# -- examples with f-strings --
+print('\n\nMore Examples with Formatting with f-strings')
+
+iNum = -1234567
+print(f'Comma as thousand separators: {iNum:,}')
+
+sep = '_'
+print(f'Underscores as thousands separator: {iNum:{sep}}')
+
+floating = 123.1243
+print(f'comma as thousands operator and 2 '
+  f'decimals: {floating:,.2f}')
+
+date = (9, 6, 2023)
+print(f'Date(minimum digits=2): {date[0]:02}-{date[1]:02}-{date[2]}')
+
+from datetime import datetime
+date = datetime(2023, 9, 26)
+print(f'Date: {date:%m / %d / %Y}')
+
+# more examples of special functions: Vector class
+import math
+
+class Vector:
+  def __init__(self, x = 0, y = 0):
+    self.x = x
+    self.y = y
+
+  # __str__ provides pretty printed thing, while __repr__ is 
+  # more geared towards developer details. You can choose whether
+  # to invoke __str__ or __repr__ by passing after the variable
+  #   !r -> __repr__
+  #   !s -> __str__
+  def __repr__(self):
+    return f'Vector({self.x!r})'
+
+  # abs(vec)
+  def __abs__(self):
+    return math.hypot(self.x, self.y)
+
+  # convert to boolean value
+  def __bool__(self):
+    return bool(abs(self))
+
+  def __add__(self, other):
+    x = self.x + other.x
+    y = self.y + other.y
+    return Vector(x, y)
+
+  # vector * scalar
+  def __mul__(self, scalar):
+    return Vector(self.x * scalar, self.y * scalar)
+
+  # scalar * vector
+  def __rmul__(self, scalar):
+    return self * scalar
+
+# if elif else statement
+age = 12
+print(f'age is {age:03}')
+if age < 4:
+  print('baby baby baby ohhhhh')
+elif age < 18:
+  print('minor age')
+else:
+  print('old ASF')
+
