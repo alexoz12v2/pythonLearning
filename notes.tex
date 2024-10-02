@@ -149,25 +149,29 @@ typedef struct {
   \begin{table}[ht]
     \centering
     \caption{Built-in python numbers operations}
-    \begin{tabular}{@{}lll@{}}
+    \begin{tabular}{@{}ll@{}}
         \toprule
-        \texttt{Operation}         & \texttt{Description}                                  & \texttt{Notes}           \\ \midrule
-        \texttt{x + y}        & Sum of \(x\) and \(y\)                            &                  \\
-        \texttt{x - y}        & Difference of \(x\) and \(y\)                     &                  \\
-        \texttt{x * y}        & Product of \(x\) and \(y\)                        &                  \\
-        \texttt{x / y}        & Quotient of \(x\) and \(y\)                       &                  \\
-        \texttt{x // y}       & Floored quotient of \(x\) and \(y\)               & (1)(2)          \\
-        \texttt{x \% y}       & Remainder of \(x / y\)                            & (2)              \\
-        \texttt{-x}           & \(x\) negated                                      &                  \\
-        \texttt{+x}           & \(x\) unchanged                                    &                  \\
-        \texttt{abs(x)}       & Absolute value or magnitude of \(x\)               &                  \\
-        \texttt{int(x)}       & \(x\) converted to integer                          & (3)(6)          \\
-        \texttt{float(x)}     & \(x\) converted to floating point                   & (4)(6)          \\
-        \texttt{complex(re, im)} & A complex number with real part \(re\), imaginary part \(im\) (defaults to zero) & (6) \\
-        \texttt{c.conjugate()} & Conjugate of the complex number \(c\)              &                  \\
-        \texttt{divmod(x, y)} & The pair \((x / y, x \% y)\)                     & (2)              \\
-        \texttt{pow(x, y)}    & \(x\) to the power \(y\)                           & (5)              \\
-        \texttt{x ** y}       & \(x\) to the power \(y\)                           & (5)              \\ 
+        \texttt{Operation} & \texttt{Description} \\ 
+        \midrule
+        \texttt{x + y} & Sum of \(x\) and \(y\) \\
+        \texttt{x - y} & Difference of \(x\) and \(y\) \\
+        \texttt{x * y} & Product of \(x\) and \(y\) \\
+        \texttt{x / y} & Quotient of \(x\) and \(y\) \\
+        \texttt{x // y} & Floored quotient of \(x\) and \(y\) \\
+        \texttt{x \% y} & Remainder of \(x / y\) \\
+        \texttt{-x} & \(x\) negated \\
+        \texttt{+x} & \(x\) unchanged \\
+        \texttt{abs(x)} & Absolute value or magnitude of \(x\) \\
+        \texttt{int(x)} & \(x\) converted to integer \\
+        \texttt{float(x)} & \(x\) converted to floating point \\
+        \texttt{complex(re, im)} & A complex number with real 
+          part \(re\), imaginary part 
+          \(im\) (defaults to zero) \\
+        \texttt{c.conjugate()} & Conjugate of 
+          the complex number \(c\) \\
+        \texttt{divmod(x, y)} & The pair \((x / y, x \% y)\) \\
+        \texttt{pow(x, y)} & \(x\) to the power \(y\) \\
+        \texttt{x ** y} & \(x\) to the power \(y\) \\ 
         \bottomrule
     \end{tabular}
     \label{tab:math_operations}
@@ -287,9 +291,51 @@ class Thing:
   in an mapping object like \texttt{dict}.\par
   \textbf{Mutable} sequence types like \texttt{list} support 
   additional operations, i.e. assignment, deletion, insertion, 
-  extension.
+  extension.\par
   \begin{table}[t]
     \centering
     \caption{Mutable Sequence Operations}
+    \begin{tabular}{@{}ll@{}}
+      \toprule
+      \textbf{Operation} & \textbf{Outcome} \\
+      \midrule
+      \texttt{s[i] = x} & item of \texttt{s} at 
+        \texttt{i} replaced by \texttt{x} \\
+      \texttt{s[i:j] = t} & slice of s from i to j replaced by 
+        iterable t \\
+      \texttt{del s[i:j]} & same as \texttt{s[i:j] = []} \\
+      \texttt{s[i:j:k] = t} & elements of \texttt{s[i:j:k]} are 
+        replaced by iterable t \\
+      \texttt{s.append(x)} & appends \texttt{x} at the end of the 
+        sequence, same as \texttt{s[len(s):len(s)] = [x]} \\
+      \texttt{s.clear()} & same as \texttt{del s[:]} \\
+      \texttt{s.copy()} & creates a shallow copy of \texttt{s}, same
+        as \texttt{s[:]} \\
+      \texttt{s.extend(t)} & extends \texttt{s} with the contents of 
+        \texttt{t}, similiar, but \textbf{not} equal 
+        to \texttt{s[len(s):len(s)] = t} \\
+      \texttt{s += t} & same as \texttt{s.extend(t)} \\
+      \bottomrule
+    \end{tabular}
   \end{table}
+  \texttt{list}s can be sorted with \texttt{l.sort()}.\par
+  \texttt{tuple}s are \textbf{immutable sequences} which are built by
+  \textit{comma separating} more elements, or by calling the 
+  constructor with an iterable, and you disambiguate between 
+  passing to a function N arguments or passing to a function a tuple 
+  with N elements with a pair of additional parenthesis
+  \begin{lstlisting}
+func(1, 2, 3)   # calling func with 3 numbers
+func((1, 2, 3)) # calling func with 1 tuple of 3 numbers
+  \end{lstlisting}
+  \texttt{range}s
+  \begin{lstlisting}
+r = range(start, stop, step) # start and step are optional
+  \end{lstlisting}
+  are \textbf{immutable sequences} commonly used in a \texttt{for} 
+  loop to iterate a given number of times\par
+  Surprise: \texttt{str}, i.e. strings, are also 
+  \textbf{immutable sequences}. To compose a string java 
+  \texttt{StringBuilder} style, use \texttt{io.StringIO}\par
+  \section{Strings, Bytes and memoryview} 
 \end{document}
