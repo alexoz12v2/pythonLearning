@@ -28,6 +28,8 @@ class ECGResBlock(nn.Module):
         self.conf = cinput
         conv_params =  {
             'stride': 2 if cinput.downsampling else 1,
+            'padding0': 8 if cinput.downsampling else 7,
+            'padding1': 7 if cinput.downsampling else 8,
         }
 
         self.branch0 = nn.Sequential(OrderedDict(([
@@ -36,17 +38,19 @@ class ECGResBlock(nn.Module):
             ('dropout0', nn.Dropout2d(p=self.conf.dropout_probability, inplace=True))
         ] if cinput.first else []) + [
             ('conv0', nn.Conv2d(in_channels=self.conf.depth, out_channels=ECGResBlock.FILTER_BASE_SIZE * cinput.k,
-                                kernel_size=16, stride=1, padding=7, device=cinput.device)),
+                                kernel_size=16, stride=1, padding=conv_params['padding0'], device=cinput.device)),
             ('bn1', nn.BatchNorm2d(num_features=ECGResBlock.FILTER_BASE_SIZE * cinput.k, device=cinput.device)),
             ('relu1', nn.ReLU(inplace=True)),
             ('dropout1', nn.Dropout2d(p=self.conf.dropout_probability, inplace=True)),
             ('conv1', nn.Conv2d(in_channels=ECGResBlock.FILTER_BASE_SIZE * cinput.k,
                                 out_channels=ECGResBlock.FILTER_BASE_SIZE * cinput.k,
-                                kernel_size=16, stride=conv_params['stride'], padding=8, device=cinput.device))
+                                kernel_size=16, stride=conv_params['stride'], padding=conv_params['padding1'],
+                                device=cinput.device))
         ]))
 
         self.branch1 = nn.Sequential(OrderedDict([
-             ('maxpool', nn.MaxPool2d(kernel_size=2 if cinput.downsampling else 3, stride=conv_params['stride'], padding=0 if cinput.downsampling else 1)),
+             ('maxpool', nn.MaxPool2d(kernel_size=2 if cinput.downsampling else 3, stride=conv_params['stride'],
+                                      padding=0 if cinput.downsampling else 1)),
              ('bottleneck', nn.Conv2d(in_channels=cinput.depth, out_channels=ECGResBlock.FILTER_BASE_SIZE * cinput.k,
                                       kernel_size=1, stride=1, padding=0, device=cinput.device)),
         ]))
@@ -100,10 +104,13 @@ class ECGNet(nn.Module):
     def __init__(self, cinput: Input) -> None:
         super(ECGNet, self).__init__()
         self.conf = cinput
+        if cinput.width < 256 or cinput.height < 256:
+            raise ValueError('too small')
+
         inputs: list[ECGResBlock.Input] = [ECGResBlock.Input(
             width = max(cinput.width // (2 ** (i // 2)), 1),
             height = max(cinput.height // (2 ** (i // 2)), 1),
-            depth = cinput.depth if i == 0 else ECGResBlock.FILTER_BASE_SIZE * (1 + i // 4),
+            depth = cinput.depth if i == 0 else ECGResBlock.FILTER_BASE_SIZE * (1 + max(i - 1, 0) // 4),
             dropout_probability = 0.5,
             downsampling = i % 2 == 1,
             first = i == 0,
@@ -121,7 +128,7 @@ class ECGNet(nn.Module):
             ('relu0', nn.ReLU(inplace=True)),
         ]))
         self.residualnet = nn.Sequential(OrderedDict([
-            ('res' + str(i), ECGResBlock(inputs[i])) for i in range(0, len(inputs) -1)
+            ('res' + str(i), ECGResBlock(inputs[i])) for i in range(0, len(inputs))
         ]))
         self.classnet = nn.Sequential(OrderedDict([
             ('bnc', nn.BatchNorm2d(num_features=last_num_features, device=cinput.device)),
@@ -135,7 +142,8 @@ class ECGNet(nn.Module):
             raise ValueError('unsupported device type')
 
     def forward(self, batch: torch.Tensor) -> torch.Tensor:
-        y = self.classnet(self.residualnet(self.warmup(batch)))
+        img = self.residualnet(self.warmup(batch))
+        y = self.classnet(img)
         return y
     
 # test spicciolo
@@ -145,7 +153,7 @@ if __name__ == '__main__':
     device = torch.device('cpu')
 
     # Set up the input configuration
-    input_config = ECGNet.Input(width=128, height=128, depth=3, device=device)
+    input_config = ECGNet.Input(width=256, height=256, depth=3, device=device)
 
     # Create an instance of the ECGNet model
     model = ECGNet(cinput=input_config)
