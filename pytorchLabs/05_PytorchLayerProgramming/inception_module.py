@@ -1,5 +1,4 @@
 import torch
-from networkx.generators.degree_seq import expected_degree_graph
 from typing_extensions import NamedTuple
 
 import torch.nn as nn
@@ -67,7 +66,7 @@ class InceptionModule(nn.Module):
                 self.stream1 = torch.cuda.Stream(device=cinput.device)
                 self.stream2 = torch.cuda.Stream(device=cinput.device)
                 self.stream3 = torch.cuda.Stream(device=cinput.device)
-                # 0 aspetta 1,2,3 e poi fa lo stacking
+                # 0 aspetta 1,2,3 e poi fa cat
                 self.rendezvous_event01 = torch.cuda.Event()
                 self.rendezvous_event02 = torch.cuda.Event()
                 self.rendezvous_event03 = torch.cuda.Event()
@@ -76,36 +75,38 @@ class InceptionModule(nn.Module):
             case _:
                 raise ValueError("Unsupported device type")
 
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
-        if x.device != self.conf.device:
-            raise ValueError(f'input device {x.device} is not the expected device {self.conf.device}')
-        if x.ndim != 3 or x.dtype != torch.float32 or x.shape != torch.Size((self.conf.depth, self.conf.width, self.conf.height)):
+    def forward(self, batch: torch.Tensor) -> torch.Tensor:
+        if batch.device != self.conf.device:
+            raise ValueError(f'input device {batch.device} is not the expected device {self.conf.device}')
+        if batch.ndim != 4 or batch.dtype != torch.float32:
             raise ValueError('unexpected torch.Tensor format')
+        if batch.shape[1] != self.conf.depth or batch.shape[2] != self.conf.width or batch.shape[3] != self.conf.height:
+            raise ValueError('unexpected torch.Tensor shape')
 
         match self.conf.device.type:
             case 'cuda':
                 with torch.cuda.stream(self.stream0):
-                    y0 = self.relu(self.conv1x1_0.forward(x))
+                    y0 = self.relu(self.conv1x1_0.forward(batch))
                 with torch.cuda.stream(self.stream1):
-                    y1 = self.relu(self.conv3x3_1.forward(self.relu(self.conv1x1_1.forward(x))))
+                    y1 = self.relu(self.conv3x3_1.forward(self.relu(self.conv1x1_1.forward(batch))))
                     self.rendezvous_event01.record(self.stream1)
                 with torch.cuda.stream(self.stream2):
-                    y2 = self.relu(self.conv5x5_2.forward(self.relu(self.conv1x1_2.forward(x))))
+                    y2 = self.relu(self.conv5x5_2.forward(self.relu(self.conv1x1_2.forward(batch))))
                     self.rendezvous_event02.record(self.stream2)
                 with torch.cuda.stream(self.stream3):
-                    y3 = self.relu(self.conv1x1_3.forward(self.maxpool_3.forward(x)))
+                    y3 = self.relu(self.conv1x1_3.forward(self.maxpool_3.forward(batch)))
                     self.rendezvous_event03.record(self.stream3)
                 with torch.cuda.stream(self.stream0):
                     self.stream0.wait_event(self.rendezvous_event01)
                     self.stream0.wait_event(self.rendezvous_event02)
                     self.stream0.wait_event(self.rendezvous_event03)
-                    y = torch.cat([y0, y1, y2, y3], dim=0)
+                    y = torch.cat([y0, y1, y2, y3], dim=1)
             case 'cpu':
-                y0 = self.relu(self.conv1x1_0.forward(x))
-                y1 = self.relu(self.conv3x3_1.forward(self.relu(self.conv1x1_1.forward(x))))
-                y2 = self.relu(self.conv5x5_2.forward(self.relu(self.conv1x1_2.forward(x))))
-                y3 = self.relu(self.conv1x1_3.forward(self.maxpool_3.forward(x))) # maxPool2D ritorna Tensor se gli passi return_indices a False, altrimenti ti da Tuple[Tensor, Tensor]
-                y = torch.cat([y0, y1, y2, y3], dim=0)
+                y0 = self.relu(self.conv1x1_0.forward(batch))
+                y1 = self.relu(self.conv3x3_1.forward(self.relu(self.conv1x1_1.forward(batch))))
+                y2 = self.relu(self.conv5x5_2.forward(self.relu(self.conv1x1_2.forward(batch))))
+                y3 = self.relu(self.conv1x1_3.forward(self.maxpool_3.forward(batch))) # maxPool2D ritorna Tensor se gli passi return_indices a False, altrimenti ti da Tuple[Tensor, Tensor]
+                y = torch.cat([y0, y1, y2, y3], dim=1)
             case _:
                 raise ValueError('unsupported device')
 
@@ -132,6 +133,7 @@ if __name__ == "__main__":
     # Create a dummy input tensor (depth x width x height)
     torch.random.manual_seed(42)
     x = torch.randn((input_config.depth, input_config.width, input_config.height), device=device, dtype=torch.float32)
+    x.unsqueeze_(dim=0) # quelli con l'underscore sono i metodi mutable
 
     # Instantiate the InceptionModule
     model = InceptionModule(input_config)
@@ -141,5 +143,5 @@ if __name__ == "__main__":
 
     # Print the shape of the output tensor to verify everything works
     expected_depth = input_config.conv1x1_depth + input_config.conv3x3_depth + input_config.conv5x5_depth + input_config.maxpool1_depth
-    expected_shape = torch.Size((expected_depth, input_config.width, input_config.height))
+    expected_shape = torch.Size((1, expected_depth, input_config.width, input_config.height))
     print(f"Output shape: {output.shape}, Expected shape: {expected_shape}")
