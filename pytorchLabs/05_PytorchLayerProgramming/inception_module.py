@@ -34,6 +34,8 @@ class InceptionModule(nn.Module):
     def __init__(self, cinput: Input) -> None:
         super(InceptionModule, self).__init__()
         self.conf = cinput
+        self.relu = nn.ReLU(inplace=True)
+
         # each component is indexed by its stream of computation
         self.conv1x1_0 = nn.Conv2d(in_channels=cinput.depth,
                                    out_channels=cinput.conv1x1_depth,
@@ -83,15 +85,15 @@ class InceptionModule(nn.Module):
         match self.conf.device.type:
             case 'cuda':
                 with torch.cuda.stream(self.stream0):
-                    y0 = self.conv1x1_0.forward(x)
+                    y0 = self.relu(self.conv1x1_0.forward(x))
                 with torch.cuda.stream(self.stream1):
-                    y1 = self.conv3x3_1.forward(self.conv1x1_1.forward(x))
+                    y1 = self.relu(self.conv3x3_1.forward(self.relu(self.conv1x1_1.forward(x))))
                     self.rendezvous_event01.record(self.stream1)
                 with torch.cuda.stream(self.stream2):
-                    y2 = self.conv5x5_2.forward(self.conv1x1_2.forward(x))
+                    y2 = self.relu(self.conv5x5_2.forward(self.relu(self.conv1x1_2.forward(x))))
                     self.rendezvous_event02.record(self.stream2)
                 with torch.cuda.stream(self.stream3):
-                    y3 = self.conv1x1_3.forward(self.maxpool_3.forward(x))
+                    y3 = self.relu(self.conv1x1_3.forward(self.maxpool_3.forward(x)))
                     self.rendezvous_event03.record(self.stream3)
                 with torch.cuda.stream(self.stream0):
                     self.stream0.wait_event(self.rendezvous_event01)
@@ -99,10 +101,10 @@ class InceptionModule(nn.Module):
                     self.stream0.wait_event(self.rendezvous_event03)
                     y = torch.cat([y0, y1, y2, y3], dim=0)
             case 'cpu':
-                y0 = self.conv1x1_0.forward(x)
-                y1 = self.conv3x3_1.forward(self.conv1x1_1.forward(x))
-                y2 = self.conv5x5_2.forward(self.conv1x1_2.forward(x))
-                y3 = self.conv1x1_3.forward(self.maxpool_3.forward(x)) # maxPool2D ritorna Tensor se gli passi return_indices a False, altrimenti ti da Tuple[Tensor, Tensor]
+                y0 = self.relu(self.conv1x1_0.forward(x))
+                y1 = self.relu(self.conv3x3_1.forward(self.relu(self.conv1x1_1.forward(x))))
+                y2 = self.relu(self.conv5x5_2.forward(self.relu(self.conv1x1_2.forward(x))))
+                y3 = self.relu(self.conv1x1_3.forward(self.maxpool_3.forward(x))) # maxPool2D ritorna Tensor se gli passi return_indices a False, altrimenti ti da Tuple[Tensor, Tensor]
                 y = torch.cat([y0, y1, y2, y3], dim=0)
             case _:
                 raise ValueError('unsupported device')
