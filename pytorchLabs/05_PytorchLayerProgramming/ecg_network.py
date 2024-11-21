@@ -149,8 +149,8 @@ class ECGNet(nn.Module):
 # test spicciolo
 if __name__ == '__main__':
     # Test configuration for a model
-    # device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
-    device = torch.device('cpu')
+    device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
+    # device = torch.device('cpu')
 
     # Set up the input configuration
     input_config = ECGNet.Input(width=256, height=256, depth=3, device=device)
@@ -161,6 +161,7 @@ if __name__ == '__main__':
     # Create a dummy input tensor with the shape (batch_size, depth, height, width)
     # Example: batch size of 4, depth=3 (e.g., RGB channels), height=128, width=128
     batch_size = 4
+    torch.random.manual_seed(42)
     dummy_input = torch.randn(batch_size, input_config.depth, input_config.height, input_config.width, device=device)
 
     # Forward pass through the model
