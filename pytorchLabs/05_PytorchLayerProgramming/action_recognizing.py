@@ -68,12 +68,7 @@ class StreamConvNetBlock(nn.Module):
             or x.shape[3] != StreamConvNetBlock.EXPECTED_SPATIAL_SIZE:
             raise ValueError('Unexpected tensor shape')
 
-        y: torch.Tensor = x
-        for layer in iter(self.net):
-            for sublayer in iter(layer):
-                y = sublayer.forward(y)
-
-        #y: torch.Tensor = self.net.forward(x)
+        y: torch.Tensor = self.net.forward(x)
         return y
 
 class StreamConvNet(nn.Module):
